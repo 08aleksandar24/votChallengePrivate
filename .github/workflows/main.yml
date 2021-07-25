@@ -29,6 +29,6 @@ jobs:
           git clone "https://github.com/lukacu/coffeeshop"
           dir 
           ls
-          cd coffeshop
+          cd coffeeshop
           ant
           cd ..
