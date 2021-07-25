@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project basedir="." default="jar" name="coffeeshop" xmlns:ivy="antlib:org.apache.ivy.ant">
+	<property environment="env" />
+	<property name="debuglevel" value="source,lines,vars" />
+	<property name="target" value="1.6" />
+	<property name="source" value="1.6" />
+	<tstamp>
+		<format property="version" pattern="yyyyMMdd" />
+	</tstamp>
+    <target name="ivy">
+        <path id="ivy.lib.path">
+            <fileset dir="/usr/share/java/" includes="*.jar"/>
+        </path>
+        <taskdef resource="org/apache/ivy/ant/antlib.xml"
+                  uri="antlib:org.apache.ivy.ant" classpathref="ivy.lib.path"/>
+    </target> 
+	<target name="init" depends="ivy">
+		<mkdir dir="bin/core" />
+		<mkdir dir="bin/application" />
+		<mkdir dir="bin/gui" />
+		<mkdir dir="bin/animation" />
+		<mkdir dir="bin/figure" />
+		<mkdir dir="bin/net" />
+		<mkdir dir="deploy" />
+		<copy includeemptydirs="false" todir="bin/figure">
+            <fileset dir="figure" excludes="**/*.launch, **/*.java" />
+		</copy>
+	</target>
+	<target name="clean">
+		<delete dir="bin" />
+		<delete dir="deploy" />
+	</target>
+	<target depends="clean" name="cleanall" />
+	<target name="build-core">
+		<echo message="Building core package" />
+		<javac debug="true" debuglevel="${debuglevel}" destdir="bin/core" source="${source}" target="${target}" includeantruntime="false">
+			<src path="core" />
+			<classpath>
+				<path location="bin/core" />
+			</classpath>
+		</javac>
+	</target>
+	<target name="build-application" depends="build-core">
+		<echo message="Building application package" />
+		<javac debug="true" debuglevel="${debuglevel}" destdir="bin/application" source="${source}" target="${target}" includeantruntime="false">
+			<src path="application" />
+			<classpath>
+				<path location="bin/core" />
+				<path location="bin/application" />
+			</classpath>
+		</javac>
+	</target>
+	<target name="build-gui" depends="build-core">
+		<echo message="Building gui package" />
+		<javac debug="true" debuglevel="${debuglevel}" destdir="bin/gui" source="${source}" target="${target}" includeantruntime="false">
+			<src path="gui" />
+			<classpath>
+				<path location="bin/core" />
+				<path location="bin/application" />
+				<path location="bin/gui" />
+			</classpath>
+		</javac>
+	</target>
+	<target name="build-animation" depends="build-core">
+		<echo message="Building animation package" />
+		<javac debug="true" debuglevel="${debuglevel}" destdir="bin/animation" source="${source}" target="${target}" includeantruntime="false">
+			<src path="animation" />
+			<classpath>
+				<path location="bin/core" />
+				<path location="bin/animation" />
+			</classpath>
+		</javac>
+	</target>
+	<target name="build-figure" depends="build-core,build-gui">
+		<echo message="Building figure package" />
+		<javac debug="true" debuglevel="${debuglevel}" destdir="bin/figure" source="${source}" target="${target}" includeantruntime="false">
+			<src path="figure" />
+			<classpath>
+				<path location="bin/core" />
+				<path location="bin/gui" />
+			</classpath>
+		</javac>
+	</target>
+	<target name="build-net" depends="build-core, build-application">
+		<echo message="Building net package" />
+		<javac debug="true" debuglevel="${debuglevel}" destdir="bin/net" source="${source}" target="${target}" includeantruntime="false">
+			<src path="net" />
+			<classpath>
+				<path location="bin/core" />
+				<path location="bin/application" />
+			</classpath>
+		</javac>
+	</target>
+	<target name="build" depends="init,build-core,build-application,build-gui,build-animation,build-figure,build-net" />
+	<target name="jar" depends="build">
+		<jar destfile="deploy/coffeeshop.core.jar" basedir="bin/core">
+			<manifest>
+				<attribute name="Built-By" value="${user.name}" />
+				<attribute name="CoffeeShop-Version" value="${version}" />
+			</manifest>
+		</jar>
+		<jar destfile="deploy/coffeeshop.application.jar" basedir="bin/application">
+			<manifest>
+				<attribute name="Built-By" value="${user.name}" />
+				<attribute name="CoffeeShop-Version" value="${version}" />
+			</manifest>
+		</jar>
+		<jar destfile="deploy/coffeeshop.gui.jar" basedir="bin/gui">
+			<manifest>
+				<attribute name="Built-By" value="${user.name}" />
+				<attribute name="CoffeeShop-Version" value="${version}" />
+			</manifest>
+		</jar>
+		<jar destfile="deploy/coffeeshop.animation.jar" basedir="bin/animation">
+			<manifest>
+				<attribute name="Built-By" value="${user.name}" />
+				<attribute name="CoffeeShop-Version" value="${version}" />
+			</manifest>
+		</jar>
+		<jar destfile="deploy/coffeeshop.figure.jar" basedir="bin/figure">
+			<manifest>
+				<attribute name="Built-By" value="${user.name}" />
+				<attribute name="CoffeeShop-Version" value="${version}" />
+			</manifest>
+		</jar>
+		<jar destfile="deploy/coffeeshop.net.jar" basedir="bin/net">
+			<manifest>
+				<attribute name="Built-By" value="${user.name}" />
+				<attribute name="CoffeeShop-Version" value="${version}" />
+			</manifest>
+		</jar>
+	</target>
+	<target name="publish-version" depends="jar">
+		<ivy:resolve revision="${version}" />
+		<ivy:publish resolver="local" pubrevision="${version}" status="release" update="true" overwrite="true">
+			<artifacts pattern="deploy/[module].[artifact].[ext]" />
+		</ivy:publish>
+	</target>
+	<target name="publish-working" depends="jar">
+		<ivy:resolve />
+		<ivy:publish resolver="local" status="release" update="true" overwrite="true">
+			<artifacts pattern="deploy/[module].[artifact].[ext]" />
+		</ivy:publish>
+	</target>
+</project>
