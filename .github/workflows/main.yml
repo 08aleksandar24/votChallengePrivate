@@ -27,5 +27,6 @@ jobs:
       - name: Run a multi-line script
         run: |
           git clone "https://github.com/lukacu/coffeeshop"
-          ls
-          dir
+          cd coffeshop
+          ant
+          cd ..
