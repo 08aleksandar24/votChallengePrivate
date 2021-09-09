@@ -51,17 +51,17 @@ public class SegmentationMaskAnnotation extends ShapeAnnotation {
                     if(mask[i][j]) {
                         points.add(new Point(i,j));
                         if(j < x0) {
-                            width += (x0-j);
+                            width += (x0-j) + 1;
                             x0 = j;
                         }
                         else if(j > (x0 + width))
-                            width = j - x0;
+                            width = j - x0  + 1;
                         if(i < y0) {
-                            height += (y0-i);
+                            height += (y0-i) + 1;
                             y0 = i;
                         }
                         else if(i > (y0 + height))
-                            height = i - y0;
+                            height = i - y0 + 1;
                     }
                 }
             }
@@ -80,17 +80,17 @@ public class SegmentationMaskAnnotation extends ShapeAnnotation {
             int pointX0 = (int) point.getX();
             int pointY0 = (int) point.getY();
             if(pointX0 < x0) {
-                width += (x0-pointX0);
+                width += (x0-pointX0) + 1;
                 x0 = pointX0;
             }
             else if(pointX0 > (x0 + width))
-                width = pointX0 - x0;
+                width = pointX0 - x0 + 1;
             if(pointY0 < y0) {
-                height += (y0-pointY0);
+                height += (y0-pointY0) + 1;
                 y0 = pointY0;
             }
             else if(pointY0 > (y0 + height))
-                height = pointY0 - y0;
+                height = pointY0 - y0  + 1;
         }
         maskUpdated = false;
     }
@@ -101,8 +101,8 @@ public class SegmentationMaskAnnotation extends ShapeAnnotation {
     public SegmentationMaskAnnotation(String[] tokens) {
         this.x0 = Integer.parseInt(tokens[0].substring(1));
         this.y0 = Integer.parseInt(tokens[1]);
-        this.width = Integer.parseInt(tokens[2]) + 1;
-        this.height = Integer.parseInt(tokens[3]) + 1;
+        this.width = Integer.parseInt(tokens[2]);
+        this.height = Integer.parseInt(tokens[3]);
         points = rle_to_vector(tokens,width,height,x0,y0);
         maskUpdated = false;
 
@@ -189,22 +189,22 @@ public class SegmentationMaskAnnotation extends ShapeAnnotation {
                 if(this.points.size() == 1) {
                     this.x0 = pointX0;
                     this.y0 = pointY0;
-                    this.width = 0;
-                    this.height = 0;
+                    this.width = 1;
+                    this.height = 1;
                 }
 
                 if(pointX0 < x0) {
-                    width += (x0-pointX0);
+                    width += (x0-pointX0) + 1;
                     x0 = pointX0;
                 }
                 else if(pointX0 > (x0 + width))
-                    width = pointX0 - x0;
+                    width = pointX0 - x0  + 1;
                 if(pointY0 < y0) {
-                    height += (y0-pointY0);
+                    height += (y0-pointY0) + 1;
                     y0 = pointY0;
                 }
                 else if(pointY0 > (y0 + height))
-                    height = pointY0 - y0;
+                    height = pointY0 - y0 + 1;
             }
             this.maskUpdated = false;
         }
@@ -234,7 +234,7 @@ public class SegmentationMaskAnnotation extends ShapeAnnotation {
     }
 
     private boolean[][] pointsToMask() {
-        boolean[][] mask = new boolean[height + 1][width + 1];
+        boolean[][] mask = new boolean[height][width];
         for (Point point : points){
             mask[point.y-this.y0][point.x-this.x0] = true;
         }
