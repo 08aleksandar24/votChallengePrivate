@@ -31,5 +31,5 @@ jobs:
           ls
           cd votChallengePrivate
           cd aibu-master          
-          ant jar
+          ant -noinput -buildfile build.xml jar
           cd ..
