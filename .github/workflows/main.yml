@@ -29,6 +29,6 @@ jobs:
           git clone "https://github.com/08aleksandar24/votChallengePrivate"
           dir 
           ls
-          cd coffeeshop
+          cd votChallengePrivate
           ant jar
           cd ..
