@@ -14,7 +14,10 @@ import si.vicos.annotations.editor.AnnotatedImageFigure;
  */
 public class SegmentationMaskAnnotation extends ShapeAnnotation {
 
-    /** The mask. */
+    /** The vector of true points */
+    private Vector<Point> points;
+
+    /** The mask */
     private boolean[][] mask;
 
     /** The offset*/
@@ -23,54 +26,120 @@ public class SegmentationMaskAnnotation extends ShapeAnnotation {
     private int width;
     private int height;
 
+    /** */
+    private boolean maskUpdated;
+
     /**
      * Instantiates a new segmenation mask annotation.
      */
     public SegmentationMaskAnnotation() {
-        mask = new boolean[1000][1000];
         x0 = 0;
         y0 = 0;
-        width = 1000;
-        height = 1000;
+        width = 0;
+        height = 0;
+        points = new Vector<Point>();
+        mask = new boolean[0][0];
+        maskUpdated = true;
     }
 
     public SegmentationMaskAnnotation(boolean[][] mask) {
+        points = new Vector<Point>();
         if(mask != null)
-            this.mask = mask;
-        else
-            mask = new boolean[1000][1000];
+        {
+            for (int i = 0; i < mask.length; i++) {
+                for (int j = 0; j < mask[i].length; j++) {
+                    if(mask[i][j]) {
+                        points.add(new Point(i,j));
+                        if(j < x0) {
+                            width += (x0-j);
+                            x0 = j;
+                        }
+                        else if(j > (x0 + width))
+                            width = j - x0;
+                        if(i < y0) {
+                            height += (y0-i);
+                            y0 = i;
+                        }
+                        else if(i > (y0 + height))
+                            height = i - y0;
+                    }
+                }
+            }
+        }
+        this.mask = mask;
+        maskUpdated = true;
     }
 
     public SegmentationMaskAnnotation(Vector<Point> points) {
-        mask = new boolean[1000][1000];
-        x0 = 0;
-        y0 = 0;
-        width = 1000;
-        height = 1000;
-        for (Point point:points) {
-            this.mask[point.y][point.x] = !this.mask[point.y][point.x];
+        width = 0;
+        height = 0;
+        this.points = points;
+        x0 = (int) points.get(0).getX();
+        y0 = (int) points.get(0).getY();
+        for (Point2D point : points) {
+            int pointX0 = (int) point.getX();
+            int pointY0 = (int) point.getY();
+            if(pointX0 < x0) {
+                width += (x0-pointX0);
+                x0 = pointX0;
+            }
+            else if(pointX0 > (x0 + width))
+                width = pointX0 - x0;
+            if(pointY0 < y0) {
+                height += (y0-pointY0);
+                y0 = pointY0;
+            }
+            else if(pointY0 > (y0 + height))
+                height = pointY0 - y0;
         }
+        maskUpdated = false;
     }
 
     /**
      * Constructor for a mask from rle
      * */
     public SegmentationMaskAnnotation(String[] tokens) {
-        this.x0 = Integer.parseInt(String.valueOf(tokens[0].charAt(1)));
+        this.x0 = Integer.parseInt(tokens[0].substring(1));
         this.y0 = Integer.parseInt(tokens[1]);
-        this.width = Integer.parseInt(tokens[2]);
-        this.height = Integer.parseInt(tokens[3]);
-        this.mask = rle_to_mask(tokens,width,height);
+        this.width = Integer.parseInt(tokens[2]) + 1;
+        this.height = Integer.parseInt(tokens[3]) + 1;
+        points = rle_to_vector(tokens,width,height,x0,y0);
+        maskUpdated = false;
+
     }
 
-    private static boolean[][] rle_to_mask(String[] rle, int width, int height) {
+    private Vector<Point> rle_to_vector(String[] rle, int width, int height, int x0, int y0) {
         /**
          *     rle: input rle mask encoding
          *     each evenly-indexed element represents number of consecutive 0s
          *     each oddly indexed element represents number of consecutive 1s
          *     width and height are dimensions of the mask
-         *     output: 2-D binary mask
+         *     output: Vector of 2d points
          *     */
+
+        points = new Vector<Point>();
+
+        int idx_ = 0;
+        for (int i = 4; i < rle.length; i++) {
+            if(i % 2 != 0)
+                //write as many trues as RLE says (falses are already in the vector)
+                for (int j = 0; j < Integer.parseInt(rle[i]); j++) {
+                    points.add(new Point(this.x0 + ((idx_ + j) % width),this.y0 + ((idx_ + j) / width)));
+                }
+            idx_ += Integer.parseInt(rle[i]);
+        }
+
+        return points;
+    }
+/*
+    private static boolean[][] rle_to_mask(String[] rle, int width, int height) {
+        /*
+         *     rle: input rle mask encoding
+         *     each evenly-indexed element represents number of consecutive 0s
+         *     each oddly indexed element represents number of consecutive 1s
+         *     width and height are dimensions of the mask
+         *     output: 2-D binary mask
+         *
 
         boolean[][] mask = new boolean[height][width];
 
@@ -85,19 +154,60 @@ public class SegmentationMaskAnnotation extends ShapeAnnotation {
             idx_ += Integer.parseInt(rle[i]);
         }
         return mask;
-    }
+    }*/
 
     /** Getter for the mask */
     public boolean[][] getMask() {
-        return mask;
+        if(!this.maskUpdated) {
+            this.mask = pointsToMask();
+            this.maskUpdated = true;
+        }
+        return this.mask;
     }
 
-    /** Adds new points to the mask */
+    /** Adds new points to the vector of points */
     public void addPoints(Vector<Point> points) {
-        if (this.mask == null)
-            mask = new boolean[1000][1000];
-        for (Point point:points)
-            this.mask[point.y][point.x] = !this.mask[point.y][point.x];
+        if (this.points == null)
+            points = new Vector<Point>();
+        for (Point newPoint : points) {
+             boolean remove = false;
+
+            for (Point point : this.points) {
+                if(point.x == newPoint.x && point.y == newPoint.y) {
+                    remove = true;
+                    break;
+                }
+            }
+
+            if(remove)
+                this.points.remove(newPoint);
+            else {
+                this.points.add(newPoint);
+                int pointX0 = (int) newPoint.getX();
+                int pointY0 = (int) newPoint.getY();
+
+                if(this.points.size() == 1) {
+                    this.x0 = pointX0;
+                    this.y0 = pointY0;
+                    this.width = 0;
+                    this.height = 0;
+                }
+
+                if(pointX0 < x0) {
+                    width += (x0-pointX0);
+                    x0 = pointX0;
+                }
+                else if(pointX0 > (x0 + width))
+                    width = pointX0 - x0;
+                if(pointY0 < y0) {
+                    height += (y0-pointY0);
+                    y0 = pointY0;
+                }
+                else if(pointY0 > (y0 + height))
+                    height = pointY0 - y0;
+            }
+            this.maskUpdated = false;
+        }
     }
 
     /*
@@ -107,6 +217,8 @@ public class SegmentationMaskAnnotation extends ShapeAnnotation {
      */
     @Override
     public String pack() {
+        if(!this.maskUpdated)
+            this.mask = pointsToMask();
         return isNull() ? "" : String.format(SERIALIZATION_LOCALE,
                 "%s", rle_to_string(mask_to_rle()));
     }
@@ -121,6 +233,14 @@ public class SegmentationMaskAnnotation extends ShapeAnnotation {
         return sb.toString();
     }
 
+    private boolean[][] pointsToMask() {
+        boolean[][] mask = new boolean[height + 1][width + 1];
+        for (Point point : points){
+            mask[point.y-this.y0][point.x-this.x0] = true;
+        }
+        return mask;
+    }
+
     /*
      * (non-Javadoc)
      *
@@ -132,6 +252,10 @@ public class SegmentationMaskAnnotation extends ShapeAnnotation {
          * Output: array of numbers (1st number = #0s, 2nd number = #1s, 3rd number = #0s, ...)
          */
         // reshape mask to a list
+
+        if(!this.maskUpdated)
+            this.mask = pointsToMask();
+
         List<Boolean> l = new ArrayList<>();
         for (boolean[] row : this.mask) {
             for (boolean pixel : row) {
@@ -181,7 +305,14 @@ public class SegmentationMaskAnnotation extends ShapeAnnotation {
      */
     @Override
     public void reset() {
-          //reinitialize mask
+        //reinitialize mask annotation
+        x0 = 0;
+        y0 = 0;
+        width = 0;
+        height = 0;
+        points = new Vector<Point>();
+        mask = new boolean[0][0];
+        maskUpdated = true;
     }
 
     /*
@@ -195,7 +326,7 @@ public class SegmentationMaskAnnotation extends ShapeAnnotation {
             return;
 
         try {
-            String lines[] = data.split("\\r?\\n");
+           /* String lines[] = data.split("\\r?\\n");
             int width = lines.length;
             int height = lines[0].split(",").length;
             Boolean [][] pack = new Boolean[width][height];
@@ -205,13 +336,13 @@ public class SegmentationMaskAnnotation extends ShapeAnnotation {
                 lines[i] = lines[i].replaceAll("\\]", "");
                 String[] line = lines[i].split(",");
                 for (int j = 0; j < line.length; j++) {
-                    if( line[j] == "true")
+                    if(line[j].equals("true"))
                         mask[i][j] = true;
                     else
                         mask[i][j] = false;
                 }
 
-            }
+            }*/
 
 
         } catch (NoSuchElementException e) {
@@ -228,14 +359,28 @@ public class SegmentationMaskAnnotation extends ShapeAnnotation {
      */
     @Override
     public Annotation clone() {
-        return new SegmentationMaskAnnotation(mask);
+        return new SegmentationMaskAnnotation(points);
     }
 
     /**
      * Changes the pixels value
      */
     private void set(int x, int y) {
-        mask[y][x] = !mask[y][x];
+        Point changedPoint = new Point(x,y);
+        boolean remove = false;
+
+        for (Point point : points) {
+            if(point.x == changedPoint.x && point.y == changedPoint.y) {
+                remove = true;
+                break;
+            }
+        }
+
+        if(remove)
+            points.remove(changedPoint);
+        else
+            points.add(changedPoint);
+        this.maskUpdated = false;
     }
 
 
@@ -245,7 +390,7 @@ public class SegmentationMaskAnnotation extends ShapeAnnotation {
      * @see java.lang.Object#toString()
      */
     public String toString() {
-        return Arrays.deepToString(this.mask).replace("], ", "]\n");
+        return rle_to_string(mask_to_rle());
     }
 
     /*
@@ -306,13 +451,7 @@ public class SegmentationMaskAnnotation extends ShapeAnnotation {
      */
     @Override
     public boolean isNull() {
-        for (int i = 0; i < mask.length; i++) {
-            for (int j = 0; j < mask[i].length; j++) {
-                if(mask[i][j])
-                    return false;
-            }
-        }
-        return true;
+        return points == null || points.size() == 0;
     }
 
     /**
@@ -324,7 +463,7 @@ public class SegmentationMaskAnnotation extends ShapeAnnotation {
      */
     public boolean contains(PointAnnotation a) {
 
-        return mask[(int) a.getY()][(int) a.getX()];
+        return points.contains(new Point((int)a.getX(),(int)a.getY()));
 
     }
 
@@ -364,4 +503,11 @@ public class SegmentationMaskAnnotation extends ShapeAnnotation {
         return super.convert(a);
     }
 
+    public int getY0() {
+        return y0;
+    }
+
+    public int getX0() {
+        return x0;
+    }
 }

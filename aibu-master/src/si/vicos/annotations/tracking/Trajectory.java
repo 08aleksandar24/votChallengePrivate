@@ -39,7 +39,8 @@ public class Trajectory implements List<Annotation>, AnnotationList {
 		PrintWriter writer = new PrintWriter(out);
 
 		for (Annotation a : data) {
-			writer.print(a.pack());
+			String string = a.pack();
+			writer.print(string);
 			writer.print("\n");
 		}
 

@@ -70,6 +70,9 @@ public class SegmentationMaskAnnotationEditor extends AnnotationEditor {
     @Override
     public void paint(Graphics2D g) {
         shape = getAnnotation().getMask();
+        int x0 = getAnnotation().getX0();
+        int y0 = getAnnotation().getY0();
+
         if(this.shape == null)
             return;
         g.setColor(color);
@@ -77,8 +80,9 @@ public class SegmentationMaskAnnotationEditor extends AnnotationEditor {
         for (int i = 0; i < shape.length; i++)
             for (int j = 0; j < shape[i].length; j++)
             {
-                if(shape[j][i]){
-                    g.draw(new Rectangle(i,j,1, 1));
+                if(shape[i][j]){
+                    g.draw(new Rectangle(x0 + j,y0 + i,1, 1));
+
                 }
             }
     }
