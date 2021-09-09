@@ -30,5 +30,6 @@ jobs:
           dir 
           ls
           cd votChallengePrivate
+          cd aibu-master          
           ant jar
           cd ..
